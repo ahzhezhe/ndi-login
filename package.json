@@ -1,0 +1,51 @@
+{
+  "name": "ndi-login",
+  "version": "1.0.0",
+  "author": "Chang Zhe Jiet",
+  "description": "Singapore National Digital Identity, Singpass/Corppass login",
+  "keywords": [
+    "login",
+    "ndi",
+    "singpass",
+    "corppass"
+  ],
+  "homepage": "https://github.com/ahzhezhe/ndi-login#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ahzhezhe/ndi-login"
+  },
+  "funding": "https://www.paypal.me/ahzhezhe",
+  "license": "ISC",
+  "files": [
+    ".github/FUNDING.yml",
+    "dist/**/*"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "lint": "eslint src/*.ts src/**/*.ts",
+    "build": "del-cli --force dist && tsc",
+    "build:watch": "tsc -w",
+    "prepublishOnly": "npm run build",
+    "postpublish": "del-cli --force dist",
+    "postversion": "git push",
+    "postinstall": "github-sponsors"
+  },
+  "dependencies": {
+    "axios": "^0.27.2",
+    "github-sponsors": "^1.0.1",
+    "node-jose": "^2.1.1"
+  },
+  "devDependencies": {
+    "@types/node-jose": "^1.1.10",
+    "@typescript-eslint/eslint-plugin": "^5.21.0",
+    "@typescript-eslint/parser": "^5.21.0",
+    "del-cli": "^4.0.1",
+    "eslint": "^8.14.0",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-security": "^1.5.0",
+    "ts-node": "^10.7.0",
+    "typedoc": "^0.23.10",
+    "typescript": "^4.6.4"
+  }
+}

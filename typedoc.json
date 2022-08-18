@@ -1,0 +1,10 @@
+{
+  "name": "ndi-login - v1",
+  "out": "docs/ndi-login-v1",
+  "entryPoints": [
+    "src/index.ts"
+  ],
+  "excludePrivate": true,
+  "disableSources": true,
+  "hideGenerator": true
+}
