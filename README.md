@@ -28,9 +28,7 @@ const { NdiLogin } = require('ndi-login');
 
 <br />
 
-## **Usage**
-
-### **Create instance**
+## **Create instance**
 ```javascript
 const ndiLogin = new NdiLoginService({
   openidDiscoveryUri: 'https://stg-id.singpass.gov.sg/.well-known/openid-configuration',
@@ -44,12 +42,16 @@ const ndiLogin = new NdiLoginService({
 });
 ```
 
-### **Generate authorization URI**
+<br />
+
+## **Generate authorization URI**
 ```javascript
 const uri = await ndiLogin.generateAuthorizationUri(redirectUri, state, nonce)
 ```
 
-### **Validate authorization code**
+<br />
+
+## **Validate authorization code**
 ```javascript
 const clientAssertion = await ndiLogin.generateClientAssertion();
 const idToken = await ndiLogin.getIdToken({ code, redirectUri, clientAssertion });
@@ -57,12 +59,16 @@ const { sub } = await ndiLogin.decryptIdToken(idToken);
 const { nricFin } = ndiLogin.parseIdTokenSub(sub);
 ```
 
-### **Get your (relying party) JWKS to expose to NDI**
+<br />
+
+## **Get your (relying party) JWKS to expose to NDI**
 ```javascript
 const jwks = await ndiLogin.getRpJwks();
 ```
 
-### **Utility function to generate a new pair of JWK for you (relying party)**
+<br />
+
+## **Utility function to generate a new pair of JWK for you (relying party)**
 ```javascript
 const { clientAssertionJwk, idTokenJwk } = await NdiLogin.generateRpJwks();
 ```
