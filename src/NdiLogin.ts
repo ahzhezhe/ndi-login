@@ -53,19 +53,6 @@ export interface GenerateAuthorizationUriOptions {
   nonce: string;
 }
 
-export interface EmbeddedAuthParams {
-  authParams: {
-    clientId: string;
-    redirectUri: string;
-    scope: string;
-    responseType: string;
-  };
-  authParamsSupplier: {
-    state: string;
-    nonce: string;
-  };
-}
-
 export interface GenerateClientAssertionOptions {
   /**
    * Expires in how many seconds, default = 60.
@@ -307,24 +294,6 @@ export class NdiLogin {
       ['state']: state,
       ['nonce']: nonce
     })}`;
-  }
-
-  /**
-   * Generate params for using `ndi_embedded_auth.js`.
-   */
-  generateEmbeddedAuthParams({ redirectUri, state, nonce }: GenerateAuthorizationUriOptions): EmbeddedAuthParams {
-    return {
-      authParams: {
-        clientId: this.#options.clientId,
-        redirectUri,
-        scope: 'openid',
-        responseType: 'code'
-      },
-      authParamsSupplier: {
-        state,
-        nonce
-      }
-    };
   }
 
   /**
