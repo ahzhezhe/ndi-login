@@ -46,12 +46,12 @@ const ndiLogin = new NdiLoginService({
 
 ## **Generate authorization URI**
 ```javascript
-const uri = await ndiLogin.generateAuthorizationUri(redirectUri, state, nonce)
+const uri = await ndiLogin.generateAuthorizationUri({ redirectUri, state, nonce })
 ```
 
 <br />
 
-## **Validate authorization code**
+## **Exchange for ID token with authorization code**
 ```javascript
 const clientAssertion = await ndiLogin.generateClientAssertion();
 const idToken = await ndiLogin.getIdToken({ code, redirectUri, clientAssertion });

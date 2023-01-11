@@ -404,16 +404,16 @@ export class NdiLogin {
    * Generate a new set of JWKS for signing/verifying client assertion and encrypting/decrypting ID token for relying party.
    * They are represented in JSON format.
    */
-  static async generateRpJwks(options: GenerateRpJwksOptions) {
-    const clientAssertionJwk = await JWK.createKey('EC', options.clientAssertion.crv || 'P-256', {
-      kid: options.clientAssertion.kid,
+  static async generateRpJwks({ clientAssertion, idToken }: GenerateRpJwksOptions) {
+    const clientAssertionJwk = await JWK.createKey('EC', clientAssertion.crv || 'P-256', {
+      kid: clientAssertion.kid,
       use: 'sig'
     });
 
-    const idTokenJwk = await JWK.createKey('EC', options.idToken.crv || 'P-256', {
-      kid: options.idToken.kid,
+    const idTokenJwk = await JWK.createKey('EC', idToken.crv || 'P-256', {
+      kid: idToken.kid,
       use: 'enc',
-      alg: options.idToken.alg || 'ECDH-ES+A256KW'
+      alg: idToken.alg || 'ECDH-ES+A256KW'
     });
 
     return {
