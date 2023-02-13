@@ -75,6 +75,13 @@ export interface GetIdTokenOptions {
   clientAssertion: string;
 }
 
+export interface DecryptIdTokenOptions {
+  /**
+   * Ignore if ID token has expired, default = `false`.
+   */
+  ignoreExpiration?: boolean;
+}
+
 export interface IdTokenPayload {
   /**
    * The subject of the JWT.
@@ -110,7 +117,7 @@ export interface ParsedIdTokenSub {
   nricFin: string;
 }
 
-export interface OpenidConfig {
+export interface OpenidConfiguration {
   issuer: string;
   authorizationUri: string;
   jwksUri: string;
@@ -126,7 +133,7 @@ export interface NdiLoginOptions {
   /**
    * Cache OpenID configuration for how many minutes, default = 60.
    */
-  openidConfigCacheDuration?: number;
+  openidConfigurationCacheDuration?: number;
   /**
    * Client identifier assigned to the relying party during its onboarding with NDI.
    */
@@ -158,16 +165,16 @@ export interface NdiLoginOptions {
 
 export class NdiLogin {
 
-  readonly #options: NdiLoginOptions & { openidConfigCacheDuration: number };
+  readonly #options: NdiLoginOptions & { openidConfigurationCacheDuration: number };
 
-  #openidConfig?: OpenidConfig;
+  #openidConfiguration?: OpenidConfiguration;
 
   #jwks?: JWK.KeyStore;
 
   constructor(options: NdiLoginOptions) {
     this.#options = {
       ...options,
-      openidConfigCacheDuration: options.openidConfigCacheDuration || 60
+      openidConfigurationCacheDuration: options.openidConfigurationCacheDuration || 60
     };
   }
 
@@ -182,8 +189,8 @@ export class NdiLogin {
   /**
    * Invalidate cached OpenID configuration.
    */
-  invalidateOpenidConfig(): void {
-    this.#openidConfig = undefined;
+  invalidateOpenidConfiguration(): void {
+    this.#openidConfiguration = undefined;
   }
 
   /**
@@ -196,9 +203,10 @@ export class NdiLogin {
   /**
    * Get OpenID configuration from OpenID discovery endpoint.
    */
-  async getOpenidConfig(): Promise<OpenidConfig> {
-    if (this.#openidConfig && (this.#openidConfig.fetchedAt - new Date().getTime()) / 1000 / 60 <= this.#options.openidConfigCacheDuration) {
-      return this.#openidConfig;
+  async getOpenidConfiguration(): Promise<OpenidConfiguration> {
+    if (this.#openidConfiguration &&
+      (this.#openidConfiguration.fetchedAt - new Date().getTime()) / 1000 / 60 <= this.#options.openidConfigurationCacheDuration) {
+      return this.#openidConfiguration;
     }
 
     try {
@@ -209,14 +217,14 @@ export class NdiLogin {
 
       this.#debug(JSON.stringify(data));
 
-      this.#openidConfig = {
+      this.#openidConfiguration = {
         issuer: data.issuer,
         authorizationUri: data.authorization_endpoint,
         jwksUri: data.jwks_uri,
         tokenUri: data.token_endpoint,
         fetchedAt: new Date().getTime()
       };
-      return this.#openidConfig!;
+      return this.#openidConfiguration!;
 
     } catch (err) {
       if (err.response) {
@@ -253,7 +261,7 @@ export class NdiLogin {
     }
 
     try {
-      const { jwksUri } = await this.getOpenidConfig();
+      const { jwksUri } = await this.getOpenidConfiguration();
 
       const { data } = await axios(jwksUri, {
         method: 'GET',
@@ -284,7 +292,7 @@ export class NdiLogin {
    * Generate an authorization URI.
    */
   async generateAuthorizationUri({ redirectUri, state, nonce }: GenerateAuthorizationUriOptions): Promise<string> {
-    const { authorizationUri } = await this.getOpenidConfig();
+    const { authorizationUri } = await this.getOpenidConfiguration();
 
     return `${authorizationUri}?${new URLSearchParams({
       ['scope']: 'openid',
@@ -300,7 +308,7 @@ export class NdiLogin {
    * Generate a client assertion for calling token endpoint.
    */
   async generateClientAssertion({ expiresIn = 60 }: GenerateClientAssertionOptions = {}): Promise<string> {
-    const { issuer } = await this.getOpenidConfig();
+    const { issuer } = await this.getOpenidConfiguration();
 
     const jwk = await JWK.asKey(this.#options.clientAssertionJwk);
     const signer = JWS.createSign({ fields: { typ: 'JWT' }, format: 'compact' }, jwk);
@@ -324,7 +332,7 @@ export class NdiLogin {
    * matches with the `state` used when generating the authorization URI.
    */
   async getIdToken({ code, redirectUri, clientAssertion }: GetIdTokenOptions): Promise<string> {
-    const { tokenUri } = await this.getOpenidConfig();
+    const { tokenUri } = await this.getOpenidConfiguration();
 
     try {
       const { data } = await axios(tokenUri, {
@@ -371,7 +379,7 @@ export class NdiLogin {
    * Decrypt ID token.
    * Relying party should verify that the `nonce` in the ID token matches with the `nonce` used when generating the authorization URI.
    */
-  async decryptIdToken(idToken: string): Promise<IdTokenPayload> {
+  async decryptIdToken(idToken: string, options?: DecryptIdTokenOptions): Promise<IdTokenPayload> {
     const decryptionJwk = await JWK.asKey(this.#options.idTokenJwk);
     const decryptor = JWE.createDecrypt(decryptionJwk);
     const jws = await decryptor.decrypt(idToken);
@@ -380,13 +388,30 @@ export class NdiLogin {
     const verifier = JWS.createVerify(jwks);
     const result = await verifier.verify(jws.payload.toString());
 
-    const payload = JSON.parse(result.payload.toString());
+    const payload: IdTokenPayload = JSON.parse(result.payload.toString());
 
     this.#debug(JSON.stringify(payload));
 
-    if (!payload.sub) {
+    // Validate payload
+    const { ignoreExpiration = false } = options || {};
+    const { issuer } = await this.getOpenidConfiguration();
+
+    try {
+      if (payload.iss !== issuer) {
+        throw new Error('Invalid iss.');
+      }
+      if (payload.aud !== this.#options.clientId) {
+        throw new Error('Invalid aud.');
+      }
+      if (!ignoreExpiration && payload.exp && payload.exp * 1000 <= new Date().getTime()) {
+        throw new Error('Token has expired.');
+      }
+      if (!payload.sub) {
+        throw new Error('Missing sub.');
+      }
+    } catch (err) {
       this.#error(JSON.stringify(payload));
-      throw new Error('Missing sub.');
+      throw err;
     }
 
     return payload;
