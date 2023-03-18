@@ -17,6 +17,7 @@
     "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/no-empty-interface": "off",
     "@typescript-eslint/prefer-for-of": "error",
     "@typescript-eslint/type-annotation-spacing": "error",
     "@typescript-eslint/comma-spacing": "error",
@@ -27,12 +28,21 @@
     "@typescript-eslint/no-unused-vars": [
       "error",
       {
-        "argsIgnorePattern": "^_"
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
       }
     ],
     "@typescript-eslint/indent": [
       "error",
-      2
+      2,
+      {
+        "SwitchCase": 1,
+        "ignoredNodes": [
+          "PropertyDefinition"
+        ]
+      }
     ],
     "@typescript-eslint/member-delimiter-style": [
       "error",
@@ -77,6 +87,22 @@
         "format": [
           "StrictPascalCase"
         ]
+      },
+      {
+        "selector": "variable",
+        "modifiers": [
+          "destructured"
+        ],
+        "format": null
+      },
+      {
+        "selector": [
+          "objectLiteralProperty"
+        ],
+        "format": null,
+        "modifiers": [
+          "requiresQuotes"
+        ]
       }
     ],
     "indent": "off",
@@ -86,6 +112,7 @@
     "func-call-spacing": "off",
     "space-infix-ops": "off",
     "no-warning-comments": "warn",
+    "no-throw-literal": "error",
     "prefer-const": "error",
     "no-multi-spaces": "error",
     "no-return-await": "error",
@@ -126,7 +153,9 @@
       "error",
       {
         "code": 150,
-        "ignoreStrings": true
+        "ignoreStrings": true,
+        "ignoreTemplateLiterals": true,
+        "ignoreComments": true
       }
     ],
     "semi": [
@@ -227,6 +256,28 @@
         "includeExports": true
       }
     ],
+    "spaced-comment": [
+      "error",
+      "always",
+      {
+        "line": {
+          "markers": [
+            "/"
+          ]
+        },
+        "block": {
+          "balanced": true
+        }
+      }
+    ],
+    "capitalized-comments": [
+      "error",
+      "always",
+      {
+        "ignoreInlineComments": true,
+        "ignoreConsecutiveComments": true
+      }
+    ],
     "import/no-default-export": "error",
     "import/order": [
       "error",
@@ -241,6 +292,13 @@
     "security/detect-object-injection": "off",
     "security/detect-non-literal-fs-filename": "off",
     "security/detect-non-literal-require": "off",
-    "security/detect-new-buffer": "off"
+    "security/detect-new-buffer": "off",
+    "lines-between-class-members": [
+      "error",
+      "always",
+      {
+        "exceptAfterSingleLine": true
+      }
+    ]
   }
 }

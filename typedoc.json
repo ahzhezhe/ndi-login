@@ -1,6 +1,6 @@
 {
-  "name": "ndi-login - v1",
-  "out": "docs/ndi-login-v1",
+  "name": "ndi-login - v2",
+  "out": "docs/ndi-login-v2",
   "entryPoints": [
     "src/index.ts"
   ],

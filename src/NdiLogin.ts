@@ -60,7 +60,7 @@ export interface GenerateClientAssertionOptions {
   expiresIn?: number;
 }
 
-export interface GetIdTokenOptions {
+export interface GetTokensOptions {
   /**
    * The authorization code issued by NDI upon successful login.
    */
@@ -73,6 +73,18 @@ export interface GetIdTokenOptions {
    * A JWT identifying the client.
    */
   clientAssertion: string;
+}
+
+export interface Tokens {
+  /**
+   * ID token.
+   */
+  idToken: string;
+  /**
+   * Access token.
+   * It can be used for MyInfo. Usage of this token is out of scope of this library.
+   */
+  accessToken: string;
 }
 
 export interface DecryptIdTokenOptions {
@@ -327,11 +339,11 @@ export class NdiLogin {
   }
 
   /**
-   * Get ID token from token endpoint.
-   * Before getting ID token, relying party should have already verified that the `state` given upon successful login
+   * Get ID token and access token from token endpoint.
+   * Before getting tokens, relying party should have already verified that the `state` given upon successful login
    * matches with the `state` used when generating the authorization URI.
    */
-  async getIdToken({ code, redirectUri, clientAssertion }: GetIdTokenOptions): Promise<string> {
+  async getTokens({ code, redirectUri, clientAssertion }: GetTokensOptions): Promise<Tokens> {
     const { tokenUri } = await this.getOpenidConfiguration();
 
     try {
@@ -356,10 +368,16 @@ export class NdiLogin {
 
       try {
         const idToken = data.id_token;
+        const accessToken = data.access_token;
+
         if (!idToken) {
           throw new Error('Missing id_token.');
         }
-        return idToken;
+
+        return {
+          idToken,
+          accessToken
+        };
 
       } catch (err) {
         this.#error(JSON.stringify(data));

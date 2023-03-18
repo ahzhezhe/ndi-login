@@ -6,7 +6,7 @@
 
 Helper library for using Singapore NDI Singpass/Corpass login.
 
-[API Documentation](https://ahzhezhe.github.io/docs/ndi-login-v1/index.html)
+[API Documentation](https://ahzhezhe.github.io/docs/ndi-login-v2/index.html)
 
 <br />
 
@@ -54,7 +54,7 @@ const uri = await ndiLogin.generateAuthorizationUri({ redirectUri, state, nonce 
 ## **Exchange for ID token with authorization code**
 ```javascript
 const clientAssertion = await ndiLogin.generateClientAssertion();
-const idToken = await ndiLogin.getIdToken({ code, redirectUri, clientAssertion });
+const { idToken } = await ndiLogin.getTokens({ code, redirectUri, clientAssertion });
 const { sub } = await ndiLogin.decryptIdToken(idToken);
 const { nricFin } = ndiLogin.parseIdTokenSub(sub);
 ```
