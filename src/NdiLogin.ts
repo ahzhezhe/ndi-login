@@ -124,9 +124,9 @@ export interface IdTokenPayload {
 
 export interface ParsedIdTokenSub {
   /**
-   * NRIC/FIN of the authenticated user.
+   * Unique identification number of the authenticated user.
    */
-  nricFin: string;
+  uin: string;
 }
 
 export interface OpenidConfiguration {
@@ -439,8 +439,8 @@ export class NdiLogin {
    * Parse ID token sub.
    */
   parseIdTokenSub(sub: string): ParsedIdTokenSub {
-    const nricFin = sub.split(',')[0].substring(2);
-    return { nricFin };
+    const uin = sub.split(',')[0].substring(2);
+    return { uin };
   }
 
   /**

@@ -56,7 +56,7 @@ const uri = await ndiLogin.generateAuthorizationUri({ redirectUri, state, nonce 
 const clientAssertion = await ndiLogin.generateClientAssertion();
 const { idToken } = await ndiLogin.getTokens({ code, redirectUri, clientAssertion });
 const { sub } = await ndiLogin.decryptIdToken(idToken);
-const { nricFin } = ndiLogin.parseIdTokenSub(sub);
+const { uin } = ndiLogin.parseIdTokenSub(sub);
 ```
 
 <br />
