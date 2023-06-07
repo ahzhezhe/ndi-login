@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import axios from 'axios';
 import { JWK, JWE, JWS } from 'node-jose';
 
@@ -78,6 +79,10 @@ export interface GetTokensOptions {
    * A JWT identifying the client.
    */
   clientAssertion: string;
+  /**
+   * PKCE code verifier.
+   */
+  codeVerifier?: string;
 }
 
 export interface Tokens {
@@ -362,7 +367,7 @@ export class NdiLogin {
    * matches with the `state` used when generating the authorization URI.
    */
   async getTokens(options: GetTokensOptions): Promise<Tokens> {
-    const { code, redirectUri, clientAssertion } = options;
+    const { code, redirectUri, clientAssertion, codeVerifier } = options;
     const { tokenUri } = await this.getOpenidConfiguration();
 
     try {
@@ -379,7 +384,8 @@ export class NdiLogin {
           ['code']: code,
           ['scope']: 'openid',
           ['client_assertion_type']: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-          ['client_assertion']: clientAssertion
+          ['client_assertion']: clientAssertion,
+          ['code_verifier']: codeVerifier
         })
       });
 
@@ -484,6 +490,16 @@ export class NdiLogin {
       clientAssertionJwk: clientAssertionJwk.toJSON(true),
       idTokenJwk: idTokenJwk.toJSON(true)
     };
+  }
+
+  /**
+   * Generate PKCE code challenge with S256.
+   *
+   * @param codeVerifier code verifier
+   * @returns code challenge
+   */
+  static generateCodeChallege(codeVerifier: string) {
+    return crypto.createHash('sha256').update(codeVerifier).digest().toString('base64url');
   }
 
 }
