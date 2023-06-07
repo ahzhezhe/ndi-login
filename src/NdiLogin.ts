@@ -493,6 +493,21 @@ export class NdiLogin {
   }
 
   /**
+   * Generate PKCE code verifier.
+   *
+   * @param length code verifier length, should be between 43 and 128
+   * @returns code verifier
+   */
+  static generateCodeVerifier(length = 50) {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~';
+    let codeVerifier = '';
+    for (let i = 0; i < length; i++) {
+      codeVerifier += chars[crypto.randomInt(0, chars.length)];
+    }
+    return codeVerifier;
+  }
+
+  /**
    * Generate PKCE code challenge with S256.
    *
    * @param codeVerifier code verifier
