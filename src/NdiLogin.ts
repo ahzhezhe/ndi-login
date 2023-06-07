@@ -51,6 +51,11 @@ export interface GenerateAuthorizationUriOptions {
    * This value must be checked by relying party.
    */
   nonce: string;
+  /**
+   * PKCE code challenge.
+   * Supported code challenge method is S256.
+   */
+  codeChallenge?: string;
 }
 
 export interface GenerateClientAssertionOptions {
@@ -198,6 +203,15 @@ export class NdiLogin {
     this.#options.logger?.error?.(message);
   }
 
+  #urlSearchParams(params: Record<string, any>) {
+    Object.entries(params).map(([key, value]) => {
+      if (value == null) {
+        delete params[key];
+      }
+    });
+    return new URLSearchParams(params);
+  }
+
   /**
    * Invalidate cached OpenID configuration.
    */
@@ -303,23 +317,27 @@ export class NdiLogin {
   /**
    * Generate an authorization URI.
    */
-  async generateAuthorizationUri({ redirectUri, state, nonce }: GenerateAuthorizationUriOptions): Promise<string> {
+  async generateAuthorizationUri(options: GenerateAuthorizationUriOptions): Promise<string> {
+    const { redirectUri, state, nonce, codeChallenge } = options;
     const { authorizationUri } = await this.getOpenidConfiguration();
 
-    return `${authorizationUri}?${new URLSearchParams({
+    return `${authorizationUri}?${this.#urlSearchParams({
       ['scope']: 'openid',
       ['response_type']: 'code',
       ['client_id']: this.#options.clientId,
       ['redirect_uri']: redirectUri,
       ['state']: state,
-      ['nonce']: nonce
+      ['nonce']: nonce,
+      ['code_challenge']: codeChallenge,
+      ['code_challenge_method']: codeChallenge ? 'S256' : undefined
     })}`;
   }
 
   /**
    * Generate a client assertion for calling token endpoint.
    */
-  async generateClientAssertion({ expiresIn = 60 }: GenerateClientAssertionOptions = {}): Promise<string> {
+  async generateClientAssertion(options?: GenerateClientAssertionOptions): Promise<string> {
+    const { expiresIn = 60 } = options || {};
     const { issuer } = await this.getOpenidConfiguration();
 
     const jwk = await JWK.asKey(this.#options.clientAssertionJwk);
@@ -343,7 +361,8 @@ export class NdiLogin {
    * Before getting tokens, relying party should have already verified that the `state` given upon successful login
    * matches with the `state` used when generating the authorization URI.
    */
-  async getTokens({ code, redirectUri, clientAssertion }: GetTokensOptions): Promise<Tokens> {
+  async getTokens(options: GetTokensOptions): Promise<Tokens> {
+    const { code, redirectUri, clientAssertion } = options;
     const { tokenUri } = await this.getOpenidConfiguration();
 
     try {
@@ -353,7 +372,7 @@ export class NdiLogin {
         headers: {
           ['Content-Type']: 'application/x-www-form-urlencoded'
         },
-        data: new URLSearchParams({
+        data: this.#urlSearchParams({
           ['client_id']: this.#options.clientId,
           ['redirect_uri']: redirectUri,
           ['grant_type']: 'authorization_code',
@@ -447,7 +466,9 @@ export class NdiLogin {
    * Generate a new set of JWKS for signing/verifying client assertion and encrypting/decrypting ID token for relying party.
    * They are represented in JSON format.
    */
-  static async generateRpJwks({ clientAssertion, idToken }: GenerateRpJwksOptions) {
+  static async generateRpJwks(options: GenerateRpJwksOptions) {
+    const { clientAssertion, idToken } = options;
+
     const clientAssertionJwk = await JWK.createKey('EC', clientAssertion.crv || 'P-256', {
       kid: clientAssertion.kid,
       use: 'sig'
