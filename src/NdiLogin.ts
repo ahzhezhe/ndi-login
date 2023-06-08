@@ -37,26 +37,54 @@ export interface GenerateRpJwksOptions {
 
 export interface GenerateAuthorizationUriOptions {
   /**
-   * Callback URI to which the response should be sent to.
-   * This must exactly match one of the relying party's redirection URIs registered with NDI.
+   * The URL that NDI will eventually redirect the user to after the user completes the login process using the Singpass App.
+   * The value will be validated against the list of redirect URIs that were pre-registered with NDI during onboarding.
    */
   redirectUri: string;
   /**
-   * This value is to maintain state between the request and the call back.
-   * Typically, Cross-Site Request Forgery (CSRF, XSRF) mitigation is done by this value.
-   */
-  state: string;
-  /**
-   * This value is passed via relying party which will be return by NDI in the ID Token as 'nonce' parameter.
-   * This is to avoid replay attacks.
-   * This value must be checked by relying party.
+   * A session-based, unique, and non-guessable value that the RP should generate per auth session.
+   * This parameter should ideally be generated and set by the RP’s backend and passed to the frontend.
+   * As part of threat modelling, NDI is requesting for the nonce parameter so as to mitigate MITM replay
+   * attacks against the ASP Service’s Token Endpoint and its resulting ID Token.
+   *
+   * Maximum of 255 characters. Must be alphanumeric.
    */
   nonce: string;
   /**
-   * PKCE code challenge.
-   * Supported code challenge method is S256.
+   * A session-based, unique, and non-guessable value that the RP should generate per auth session.
+   * This parameter should ideally be generated and set by the RP’s backend and passed to the frontend.
+   * As part of threat modelling, NDI is requesting for the state parameter so as to mitigate replay attacks
+   * against the RP’s redirection endpoint.
+   *
+   * Maximum of 255 characters. Must match regexp pattern of `[a-zA-Z0-9/+_\-=.]+`
+   */
+  state: string;
+  /**
+   * The hash of a code verifier generated using the S256 hash method.
+   * This is to enable Proof Key for Code Exchange (PKCE).
+   * This is an extension to the authorization code flow to prevent CSRF and authorization code injection attacks.
+   *
+   * Code verifier must match regexp pattern of `[a-zA-Z0-9_\-]{43,128}`
    */
   codeChallenge?: string;
+  /**
+   * The language which the Singpass login page should be displayed in.
+   */
+  uiLocale?: 'en' | 'ms' | 'ta' | 'zh-SG';
+  /**
+   * Required if the redirect URI uses is an app-claimed HTTPS URL.
+   * This value is ignored if the redirect URI has a custom scheme.
+   */
+  redirectUriHttpsType?: 'standard_https' | 'app_claimed_https';
+  /**
+   * Intended for iOS mobile apps which use QR authentication via redirect auth.
+   * This adds the possibility for the user to be redirected back to the provided App Link
+   * after they successfully authorize themselves on the Singpass App.
+   * The value passed here should be the App Link registered with Apple’s App Store and/or Google’s Play Store.
+   * In the future, the provided value will be validated according to the list of app launch URLs which the RP
+   * has pre-registered with NDI.
+   */
+  appLaunchUrl?: string;
 }
 
 export interface GenerateClientAssertionOptions {
@@ -68,7 +96,7 @@ export interface GenerateClientAssertionOptions {
 
 export interface GetTokensOptions {
   /**
-   * The authorization code issued by NDI upon successful login.
+   * The code issued earlier in the auth session.
    */
   code: string;
   /**
@@ -80,7 +108,8 @@ export interface GetTokensOptions {
    */
   clientAssertion: string;
   /**
-   * PKCE code verifier.
+   * Required if code challenge parameter was passed to authorization endpoint.
+   * This is the session-based, unique, and non-guessable value that the RP had used to generate the code challenge.
    */
   codeVerifier?: string;
 }
@@ -323,7 +352,7 @@ export class NdiLogin {
    * Generate an authorization URI.
    */
   async generateAuthorizationUri(options: GenerateAuthorizationUriOptions): Promise<string> {
-    const { redirectUri, state, nonce, codeChallenge } = options;
+    const { redirectUri, nonce, state, codeChallenge, uiLocale, redirectUriHttpsType, appLaunchUrl } = options;
     const { authorizationUri } = await this.getOpenidConfiguration();
 
     return `${authorizationUri}?${this.#urlSearchParams({
@@ -331,10 +360,13 @@ export class NdiLogin {
       ['response_type']: 'code',
       ['client_id']: this.#options.clientId,
       ['redirect_uri']: redirectUri,
-      ['state']: state,
       ['nonce']: nonce,
+      ['state']: state,
       ['code_challenge']: codeChallenge,
-      ['code_challenge_method']: codeChallenge ? 'S256' : undefined
+      ['code_challenge_method']: codeChallenge ? 'S256' : undefined,
+      ['ui_locale']: uiLocale,
+      ['redirect_uri_https_type']: redirectUriHttpsType,
+      ['app_launch_url']: appLaunchUrl
     })}`;
   }
 
@@ -492,23 +524,47 @@ export class NdiLogin {
     };
   }
 
+  static #generateRandomValue(chars: string, length: number) {
+    chars = `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789${chars}`;
+    let value = '';
+    for (let i = 0; i < length; i++) {
+      value += chars[crypto.randomInt(0, chars.length)];
+    }
+    return value;
+  }
+
   /**
-   * Generate PKCE code verifier.
+   * Generate nonce.
+   *
+   * @param length nonce length, maximum length is 255
+   * @returns nonce
+   */
+  static generateNonce(length = 50) {
+    return this.#generateRandomValue('', length);
+  }
+
+  /**
+   * Generate state.
+   *
+   * @param length state length, maximum length is 255
+   * @returns state
+   */
+  static generateState(length = 50) {
+    return this.#generateRandomValue('/+_-=.', length);
+  }
+
+  /**
+   * Generate code verifier.
    *
    * @param length code verifier length, should be between 43 and 128
    * @returns code verifier
    */
   static generateCodeVerifier(length = 50) {
-    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~';
-    let codeVerifier = '';
-    for (let i = 0; i < length; i++) {
-      codeVerifier += chars[crypto.randomInt(0, chars.length)];
-    }
-    return codeVerifier;
+    return this.#generateRandomValue('_-', length);
   }
 
   /**
-   * Generate PKCE code challenge with S256.
+   * Generate code challenge.
    *
    * @param codeVerifier code verifier
    * @returns code challenge
