@@ -18,18 +18,18 @@ npm install ndi-login
 <br />
 
 ## **Import**
-```javascript
+```typescript
 import { NdiLogin } from 'ndi-login';
 ```
 or
-```javascript
+```typescript
 const { NdiLogin } = require('ndi-login');
 ```
 
 <br />
 
 ## **Create instance**
-```javascript
+```typescript
 const ndiLogin = new NdiLoginService({
   openidDiscoveryUri: 'https://stg-id.singpass.gov.sg/.well-known/openid-configuration',
   clientId: 'YOUR_CLIENT_ID',
@@ -45,14 +45,14 @@ const ndiLogin = new NdiLoginService({
 <br />
 
 ## **Generate authorization URI**
-```javascript
+```typescript
 const uri = await ndiLogin.generateAuthorizationUri({ redirectUri, state, nonce })
 ```
 
 <br />
 
 ## **Exchange for ID token with authorization code**
-```javascript
+```typescript
 const clientAssertion = await ndiLogin.generateClientAssertion();
 const { idToken } = await ndiLogin.getTokens({ code, redirectUri, clientAssertion });
 const { sub } = await ndiLogin.decryptIdToken(idToken);
@@ -62,13 +62,13 @@ const { uin } = ndiLogin.parseIdTokenSub(sub);
 <br />
 
 ## **Get your (relying party) JWKS to expose to NDI**
-```javascript
+```typescript
 const jwks = await ndiLogin.getRpJwks();
 ```
 
 <br />
 
 ## **Utility function to generate a new pair of JWK for you (relying party)**
-```javascript
+```typescript
 const { clientAssertionJwk, idTokenJwk } = await NdiLogin.generateRpJwks();
 ```
