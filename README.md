@@ -30,7 +30,7 @@ const { NdiLogin } = require('ndi-login');
 
 ## **Create instance**
 ```typescript
-const ndiLogin = new NdiLoginService({
+const ndiLogin = new NdiLogin({
   openidDiscoveryUri: 'https://stg-id.singpass.gov.sg/.well-known/openid-configuration',
   clientId: 'YOUR_CLIENT_ID',
   clientAssertionJwk: {
@@ -46,7 +46,7 @@ const ndiLogin = new NdiLoginService({
 
 ## **Generate authorization URI**
 ```typescript
-const uri = await ndiLogin.generateAuthorizationUri({ redirectUri, state, nonce })
+const uri = await ndiLogin.generateAuthorizationUri({ redirectUri, codeChallenge, state, nonce })
 ```
 
 <br />
@@ -54,9 +54,9 @@ const uri = await ndiLogin.generateAuthorizationUri({ redirectUri, state, nonce 
 ## **Exchange for ID token with authorization code**
 ```typescript
 const clientAssertion = await ndiLogin.generateClientAssertion();
-const { idToken } = await ndiLogin.getTokens({ code, redirectUri, clientAssertion });
-const { sub } = await ndiLogin.decryptIdToken(idToken);
-const { uin } = ndiLogin.parseIdTokenSub(sub);
+const { idToken } = await ndiLogin.getTokens({ clientAssertion, code, redirectUri, codeVerifier });
+const { sub } = await ndiLogin.getIdTokenClaims(idToken);
+const { uin } = NdiLogin.parseIdTokenSub(sub);
 ```
 
 <br />
@@ -68,7 +68,23 @@ const jwks = await ndiLogin.getRpJwks();
 
 <br />
 
-## **Utility function to generate a new pair of JWK for you (relying party)**
+## **Utility method to generate a new pair of JWK for you (relying party)**
 ```typescript
 const { clientAssertionJwk, idTokenJwk } = await NdiLogin.generateRpJwks();
+```
+
+<br />
+
+## **Utility methods for PKCE**
+```typescript
+const codeVerifier = NdiLogin.generateCodeVerifier();
+const codeChallenge = NdiLogin.generateCodeChallege(codeVerifier);
+```
+
+<br />
+
+## **Utility methods for random values**
+```typescript
+const state = NdiLogin.generateState();
+const nonce = NdiLogin.generateNonce();
 ```

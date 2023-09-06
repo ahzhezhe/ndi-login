@@ -1,3 +1,49 @@
+export interface NdiLoginOptions {
+  /**
+   * NDI's OpenID discovery URI.
+   */
+  openidDiscoveryUri: string;
+  /**
+   * Cache OpenID configuration for how many minutes, default = 60.
+   */
+  openidConfigurationCacheDuration?: number;
+  /**
+   * Client identifier assigned to the relying party during its onboarding with NDI.
+   */
+  clientId: string;
+  /**
+   * JWK for signing/verifying client assertion in JSON format.
+   */
+  clientAssertionJwk: object;
+  /**
+   * JWK for encrypting/decrypting ID token in JSON format.
+   */
+  idTokenJwk: object;
+  /**
+   * Proxy.
+   */
+  proxy?: {
+    protocol: string;
+    host: string;
+    port: number;
+  };
+  /**
+   * Logger.
+   */
+  logger?: {
+    debug?: (message: string) => void;
+    error?: (message: string) => void;
+  };
+}
+
+export interface OpenidConfiguration {
+  issuer: string;
+  authorizationUri: string;
+  jwksUri: string;
+  tokenUri: string;
+  fetchedAt: number;
+}
+
 export interface GenerateRpJwksOptions {
   /**
    * For signing/verifying client assertion.
@@ -38,14 +84,13 @@ export interface GenerateAuthorizationUriOptions {
    */
   redirectUri: string;
   /**
-   * A session-based, unique, and non-guessable value that the RP should generate per auth session.
-   * This parameter should ideally be generated and set by the RP’s backend and passed to the frontend.
-   * As part of threat modelling, NDI is requesting for the nonce parameter so as to mitigate MITM replay
-   * attacks against the ASP Service’s Token Endpoint and its resulting ID Token.
+   * The hash of a code verifier generated using the S256 hash method.
+   * This is to enable Proof Key for Code Exchange (PKCE).
+   * This is an extension to the authorization code flow to prevent CSRF and authorization code injection attacks.
    *
-   * Maximum of 255 characters. Must be alphanumeric.
+   * Code verifier must match regexp pattern of `[a-zA-Z0-9_\-]{43,128}`
    */
-  nonce: string;
+  codeChallenge: string;
   /**
    * A session-based, unique, and non-guessable value that the RP should generate per auth session.
    * This parameter should ideally be generated and set by the RP’s backend and passed to the frontend.
@@ -56,13 +101,14 @@ export interface GenerateAuthorizationUriOptions {
    */
   state: string;
   /**
-   * The hash of a code verifier generated using the S256 hash method.
-   * This is to enable Proof Key for Code Exchange (PKCE).
-   * This is an extension to the authorization code flow to prevent CSRF and authorization code injection attacks.
+   * A session-based, unique, and non-guessable value that the RP should generate per auth session.
+   * This parameter should ideally be generated and set by the RP’s backend and passed to the frontend.
+   * As part of threat modelling, NDI is requesting for the nonce parameter so as to mitigate MITM replay
+   * attacks against the ASP Service’s Token Endpoint and its resulting ID Token.
    *
-   * Code verifier must match regexp pattern of `[a-zA-Z0-9_\-]{43,128}`
+   * Maximum of 255 characters. Must be alphanumeric.
    */
-  codeChallenge: string;
+  nonce: string;
   /**
    * The language which the Singpass login page should be displayed in.
    */
@@ -92,6 +138,10 @@ export interface GenerateClientAssertionOptions {
 
 export interface GetTokensOptions {
   /**
+   * A JWT identifying the client.
+   */
+  clientAssertion: string;
+  /**
    * The code issued earlier in the auth session.
    */
   code: string;
@@ -99,10 +149,6 @@ export interface GetTokensOptions {
    * The redirect URI being used in this auth session.
    */
   redirectUri: string;
-  /**
-   * A JWT identifying the client.
-   */
-  clientAssertion: string;
   /**
    * Required if code challenge parameter was passed to authorization endpoint.
    * This is the session-based, unique, and non-guessable value that the RP had used to generate the code challenge.
@@ -122,14 +168,14 @@ export interface Tokens {
   accessToken: string;
 }
 
-export interface DecryptIdTokenOptions {
+export interface GetIdTokenClaimsOptions {
   /**
    * Ignore if ID token has expired, default = `false`.
    */
   ignoreExpiration?: boolean;
 }
 
-export interface IdTokenPayload {
+export interface IdTokenClaims {
   /**
    * The subject of the JWT.
    */
@@ -162,50 +208,4 @@ export interface ParsedIdTokenSub {
    * Unique identification number of the authenticated user.
    */
   uin: string;
-}
-
-export interface OpenidConfiguration {
-  issuer: string;
-  authorizationUri: string;
-  jwksUri: string;
-  tokenUri: string;
-  fetchedAt: number;
-}
-
-export interface NdiLoginOptions {
-  /**
-   * NDI's OpenID discovery URI.
-   */
-  openidDiscoveryUri: string;
-  /**
-   * Cache OpenID configuration for how many minutes, default = 60.
-   */
-  openidConfigurationCacheDuration?: number;
-  /**
-   * Client identifier assigned to the relying party during its onboarding with NDI.
-   */
-  clientId: string;
-  /**
-   * JWK for signing/verifying client assertion in JSON format.
-   */
-  clientAssertionJwk: object;
-  /**
-   * JWK for encrypting/decrypting ID token in JSON format.
-   */
-  idTokenJwk: object;
-  /**
-   * Proxy.
-   */
-  proxy?: {
-    protocol: string;
-    host: string;
-    port: number;
-  };
-  /**
-   * Logger.
-   */
-  logger?: {
-    debug?: (message: string) => void;
-    error?: (message: string) => void;
-  };
 }

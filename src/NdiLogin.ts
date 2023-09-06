@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { JWK, JWE, JWS } from 'node-jose';
 import { NdiLoginUtil } from './NdiLoginUtil';
-import { DecryptIdTokenOptions, GenerateAuthorizationUriOptions, GenerateClientAssertionOptions, GetTokensOptions, IdTokenPayload, NdiLoginOptions, OpenidConfiguration, Tokens } from './types';
+import { GenerateAuthorizationUriOptions, GenerateClientAssertionOptions, GetIdTokenClaimsOptions, GetTokensOptions, IdTokenClaims, NdiLoginOptions, OpenidConfiguration, Tokens } from './types';
 
 export class NdiLogin extends NdiLoginUtil {
 
@@ -143,7 +143,7 @@ export class NdiLogin extends NdiLoginUtil {
    * Generate an authorization URI.
    */
   async generateAuthorizationUri(options: GenerateAuthorizationUriOptions): Promise<string> {
-    const { redirectUri, nonce, state, codeChallenge, uiLocale, redirectUriHttpsType, appLaunchUrl } = options;
+    const { redirectUri, codeChallenge, state, nonce, uiLocale, redirectUriHttpsType, appLaunchUrl } = options;
     const { authorizationUri } = await this.getOpenidConfiguration();
 
     return `${authorizationUri}?${this.#urlSearchParams({
@@ -151,10 +151,10 @@ export class NdiLogin extends NdiLoginUtil {
       ['response_type']: 'code',
       ['client_id']: this.#options.clientId,
       ['redirect_uri']: redirectUri,
-      ['nonce']: nonce,
-      ['state']: state,
       ['code_challenge']: codeChallenge,
       ['code_challenge_method']: 'S256',
+      ['state']: state,
+      ['nonce']: nonce,
       ['ui_locale']: uiLocale,
       ['redirect_uri_https_type']: redirectUriHttpsType,
       ['app_launch_url']: appLaunchUrl
@@ -190,7 +190,7 @@ export class NdiLogin extends NdiLoginUtil {
    * matches with the `state` used when generating the authorization URI.
    */
   async getTokens(options: GetTokensOptions): Promise<Tokens> {
-    const { code, redirectUri, clientAssertion, codeVerifier } = options;
+    const { clientAssertion, code, redirectUri, codeVerifier } = options;
     const { tokenUri } = await this.getOpenidConfiguration();
 
     try {
@@ -202,13 +202,13 @@ export class NdiLogin extends NdiLoginUtil {
         },
         data: this.#urlSearchParams({
           ['client_id']: this.#options.clientId,
-          ['redirect_uri']: redirectUri,
-          ['grant_type']: 'authorization_code',
-          ['code']: code,
-          ['scope']: 'openid',
           ['client_assertion_type']: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
           ['client_assertion']: clientAssertion,
-          ['code_verifier']: codeVerifier
+          ['grant_type']: 'authorization_code',
+          ['code']: code,
+          ['redirect_uri']: redirectUri,
+          ['code_verifier']: codeVerifier,
+          ['scope']: 'openid'
         })
       });
 
@@ -242,10 +242,10 @@ export class NdiLogin extends NdiLoginUtil {
   }
 
   /**
-   * Decrypt ID token.
+   * Decrypt & verify ID token and return its claims.
    * Relying party should verify that the `nonce` in the ID token matches with the `nonce` used when generating the authorization URI.
    */
-  async decryptIdToken(idToken: string, options?: DecryptIdTokenOptions): Promise<IdTokenPayload> {
+  async getIdTokenClaims(idToken: string, options?: GetIdTokenClaimsOptions): Promise<IdTokenClaims> {
     const decryptionJwk = await JWK.asKey(this.#options.idTokenJwk);
     const decryptor = JWE.createDecrypt(decryptionJwk);
     const jws = await decryptor.decrypt(idToken);
@@ -254,33 +254,33 @@ export class NdiLogin extends NdiLoginUtil {
     const verifier = JWS.createVerify(jwks);
     const result = await verifier.verify(jws.payload.toString());
 
-    const payload: IdTokenPayload = JSON.parse(result.payload.toString());
+    const claims: IdTokenClaims = JSON.parse(result.payload.toString());
 
-    this.#debug(JSON.stringify(payload));
+    this.#debug(JSON.stringify(claims));
 
-    // Validate payload
+    // Validate claims
     const { ignoreExpiration = false } = options || {};
     const { issuer } = await this.getOpenidConfiguration();
 
     try {
-      if (payload.iss !== issuer) {
+      if (claims.iss !== issuer) {
         throw new Error('Invalid iss.');
       }
-      if (payload.aud !== this.#options.clientId) {
+      if (claims.aud !== this.#options.clientId) {
         throw new Error('Invalid aud.');
       }
-      if (!ignoreExpiration && payload.exp && payload.exp * 1000 <= new Date().getTime()) {
+      if (!ignoreExpiration && claims.exp && claims.exp * 1000 <= new Date().getTime()) {
         throw new Error('Token has expired.');
       }
-      if (!payload.sub) {
+      if (!claims.sub) {
         throw new Error('Missing sub.');
       }
     } catch (err) {
-      this.#error(JSON.stringify(payload));
+      this.#error(JSON.stringify(claims));
       throw err;
     }
 
-    return payload;
+    return claims;
   }
 
 }
