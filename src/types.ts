@@ -6,9 +6,17 @@ export interface Proxy {
 
 export interface NdiLoginOptions {
   /**
-   * NDI's OpenID discovery URI.
+   * Issuer.
+   *
+   * Singpass staging: https://stg-id.singpass.gov.sg
+   *
+   * Singpass production: https://id.singpass.gov.sg
+   *
+   * Corppass staging: https://stg-id.corppass.gov.sg
+   *
+   * Corppass production: https://id.corppass.gov.sg
    */
-  openidDiscoveryUri: string;
+  issuer: string;
   /**
    * Cache OpenID configuration for how many minutes, default = 60.
    */

@@ -31,7 +31,7 @@ const { NdiLogin } = require('ndi-login');
 ## **Create instance**
 ```typescript
 const ndiLogin = new NdiLogin({
-  openidDiscoveryUri: 'https://stg-id.singpass.gov.sg/.well-known/openid-configuration',
+  issuer: 'https://stg-id.singpass.gov.sg',
   clientId: 'YOUR_CLIENT_ID',
   clientAssertionJwk: {
     // JWK for signing/verifying client assertion in JSON format

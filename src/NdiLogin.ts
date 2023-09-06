@@ -77,7 +77,7 @@ export class NdiLogin extends NdiLoginUtil {
     }
 
     try {
-      const { data } = await axios(this.#options.openidDiscoveryUri, {
+      const { data } = await axios(`${this.#options.issuer}/.well-known/openid-configuration`, {
         method: 'GET',
         proxy: this.#options.proxy
       });
@@ -163,8 +163,8 @@ export class NdiLogin extends NdiLoginUtil {
     const { authorizationUri } = await this.getOpenidConfiguration();
 
     return `${authorizationUri}?${this.#urlSearchParams({
-      ['scope']: 'openid',
       ['response_type']: 'code',
+      ['scope']: 'openid',
       ['client_id']: this.#options.clientId,
       ['redirect_uri']: redirectUri,
       ['code_challenge']: codeChallenge,
