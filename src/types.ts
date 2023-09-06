@@ -1,3 +1,9 @@
+export interface Proxy {
+  protocol: string;
+  host: string;
+  port: number;
+}
+
 export interface NdiLoginOptions {
   /**
    * NDI's OpenID discovery URI.
@@ -22,11 +28,7 @@ export interface NdiLoginOptions {
   /**
    * Proxy.
    */
-  proxy?: {
-    protocol: string;
-    host: string;
-    port: number;
-  };
+  proxy?: string | Proxy;
   /**
    * Logger.
    */

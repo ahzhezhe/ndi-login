@@ -1,11 +1,14 @@
 import axios from 'axios';
 import { JWK, JWE, JWS } from 'node-jose';
 import { NdiLoginUtil } from './NdiLoginUtil';
-import { GenerateAuthorizationUriOptions, GenerateClientAssertionOptions, GetIdTokenClaimsOptions, GetTokensOptions, IdTokenClaims, NdiLoginOptions, OpenidConfiguration, Tokens } from './types';
+import { GenerateAuthorizationUriOptions, GenerateClientAssertionOptions, GetIdTokenClaimsOptions, GetTokensOptions, IdTokenClaims, NdiLoginOptions, OpenidConfiguration, Proxy, Tokens } from './types';
 
 export class NdiLogin extends NdiLoginUtil {
 
-  readonly #options: NdiLoginOptions & { openidConfigurationCacheDuration: number };
+  readonly #options: NdiLoginOptions & {
+    proxy?: Proxy;
+    openidConfigurationCacheDuration: number;
+  };
 
   #openidConfiguration?: OpenidConfiguration;
 
@@ -14,8 +17,21 @@ export class NdiLogin extends NdiLoginUtil {
   constructor(options: NdiLoginOptions) {
     super();
 
+    let proxy: Proxy | undefined;
+    if (typeof options.proxy === 'string') {
+      const url = new URL(options.proxy);
+      const protocol = url.protocol.substring(0, url.protocol.length - 1);
+      const host = url.host.replaceAll(`:${url.port}`, '');
+      const port = Number(url.port);
+      proxy = { protocol, host, port };
+
+    } else {
+      proxy = options.proxy;
+    }
+
     this.#options = {
       ...options,
+      proxy,
       openidConfigurationCacheDuration: options.openidConfigurationCacheDuration || 60
     };
   }
