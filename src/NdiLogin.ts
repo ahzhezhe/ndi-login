@@ -66,7 +66,7 @@ export interface GenerateAuthorizationUriOptions {
    *
    * Code verifier must match regexp pattern of `[a-zA-Z0-9_\-]{43,128}`
    */
-  codeChallenge?: string;
+  codeChallenge: string;
   /**
    * The language which the Singpass login page should be displayed in.
    */
@@ -111,7 +111,7 @@ export interface GetTokensOptions {
    * Required if code challenge parameter was passed to authorization endpoint.
    * This is the session-based, unique, and non-guessable value that the RP had used to generate the code challenge.
    */
-  codeVerifier?: string;
+  codeVerifier: string;
 }
 
 export interface Tokens {
@@ -363,7 +363,7 @@ export class NdiLogin {
       ['nonce']: nonce,
       ['state']: state,
       ['code_challenge']: codeChallenge,
-      ['code_challenge_method']: codeChallenge ? 'S256' : undefined,
+      ['code_challenge_method']: 'S256',
       ['ui_locale']: uiLocale,
       ['redirect_uri_https_type']: redirectUriHttpsType,
       ['app_launch_url']: appLaunchUrl
