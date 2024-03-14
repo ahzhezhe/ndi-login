@@ -19,15 +19,15 @@ export class NdiLoginUtil {
   static async generateRpJwks(options: GenerateRpJwksOptions) {
     const { clientAssertion, idToken } = options;
 
-    const clientAssertionJwk = await JWK.createKey('EC', clientAssertion.crv || 'P-256', {
+    const clientAssertionJwk = await JWK.createKey('EC', clientAssertion.crv ?? 'P-256', {
       kid: clientAssertion.kid,
       use: 'sig'
     });
 
-    const idTokenJwk = await JWK.createKey('EC', idToken.crv || 'P-256', {
+    const idTokenJwk = await JWK.createKey('EC', idToken.crv ?? 'P-256', {
       kid: idToken.kid,
       use: 'enc',
-      alg: idToken.alg || 'ECDH-ES+A256KW'
+      alg: idToken.alg ?? 'ECDH-ES+A256KW'
     });
 
     return {

@@ -32,7 +32,7 @@ export class NdiLogin extends NdiLoginUtil {
     this.#options = {
       ...options,
       proxy,
-      openidConfigurationCacheDuration: options.openidConfigurationCacheDuration || 60
+      openidConfigurationCacheDuration: options.openidConfigurationCacheDuration ?? 60
     };
   }
 
@@ -181,7 +181,7 @@ export class NdiLogin extends NdiLoginUtil {
    * Generate a client assertion for calling token endpoint.
    */
   async generateClientAssertion(options?: GenerateClientAssertionOptions): Promise<string> {
-    const { expiresIn = 60 } = options || {};
+    const { expiresIn = 60 } = options ?? {};
     const { issuer } = await this.getOpenidConfiguration();
 
     const jwk = await JWK.asKey(this.#options.clientAssertionJwk);
@@ -275,7 +275,7 @@ export class NdiLogin extends NdiLoginUtil {
     this.#debug(JSON.stringify(claims));
 
     // Validate claims
-    const { ignoreExpiration = false } = options || {};
+    const { ignoreExpiration = false } = options ?? {};
     const { issuer } = await this.getOpenidConfiguration();
 
     try {
