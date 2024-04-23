@@ -6,7 +6,7 @@
 
 Helper library for using Singapore NDI Singpass/Corpass login.
 
-[API Documentation](https://ahzhezhe.github.io/docs/ndi-login-v2/index.html)
+[API Documentation](https://ahzhezhe.github.io/docs/ndi-login-v3/index.html)
 
 <br />
 
