@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { JWK, JWE, JWS } from 'node-jose';
 import { NdiLoginUtil } from './NdiLoginUtil';
-import { GenerateAuthorizationUriOptions, GenerateClientAssertionOptions, GetIdTokenClaimsOptions, GetTokensOptions, IdTokenClaims, NdiLoginOptions, OpenidConfiguration, Proxy, Tokens } from './types';
+import { BackchannelAuthenticateOptions, BackchannelAuthenticateResponse, GenerateAuthorizationUriOptions, GenerateClientAssertionOptions, GetIdTokenClaimsOptions, GetTokensByAuthReqIdOptions, GetTokensByAuthorizationCodeOptions, IdTokenClaims, NdiLoginOptions, OpenidConfiguration, Proxy, Tokens } from './types';
 
 export class NdiLogin extends NdiLoginUtil {
 
@@ -87,6 +87,7 @@ export class NdiLogin extends NdiLoginUtil {
       this.#openidConfiguration = {
         issuer: data.issuer,
         authorizationUri: data.authorization_endpoint,
+        backchannelAuthenticationUri: data.backchannel_authentication_endpoint,
         jwksUri: data.jwks_uri,
         tokenUri: data.token_endpoint,
         fetchedAt: new Date().getTime()
@@ -201,13 +202,77 @@ export class NdiLogin extends NdiLoginUtil {
   }
 
   /**
+   * Initiate backchannel authentication (CIBA).
+   */
+  async backchannelAuthenticate(options: BackchannelAuthenticateOptions): Promise<BackchannelAuthenticateResponse> {
+    const { clientAssertion, uin } = options;
+    const { backchannelAuthenticationUri } = await this.getOpenidConfiguration();
+
+    try {
+      const { data } = await axios(backchannelAuthenticationUri, {
+        method: 'POST',
+        proxy: this.#options.proxy,
+        headers: {
+          ['Content-Type']: 'application/x-www-form-urlencoded'
+        },
+        data: this.#urlSearchParams({
+          ['client_assertion_type']: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+          ['client_assertion']: clientAssertion,
+          ['login_hint']: uin,
+          ['scope']: 'openid'
+        })
+      });
+
+      this.#debug(JSON.stringify(data));
+
+      const authReqId = data.auth_req_id;
+      if (!authReqId) {
+        throw new Error('Missing auth_req_id.');
+      }
+      return authReqId;
+
+    } catch (err) {
+      if (err.response) {
+        this.#error(JSON.stringify(err.response.data));
+      }
+      this.#error(`Failed to initiate backchannel authentication: ${err.message}`);
+      throw err;
+    }
+  }
+
+  /**
    * Get ID token and access token from token endpoint.
    * Before getting tokens, relying party should have already verified that the `state` given upon successful login
    * matches with the `state` used when generating the authorization URI.
    */
-  async getTokens(options: GetTokensOptions): Promise<Tokens> {
-    const { clientAssertion, code, redirectUri, codeVerifier } = options;
+  async getTokens(options: GetTokensByAuthorizationCodeOptions | GetTokensByAuthReqIdOptions): Promise<Tokens> {
     const { tokenUri } = await this.getOpenidConfiguration();
+
+    let params: URLSearchParams;
+
+    if ('code' in options) {
+      const { clientAssertion, code, redirectUri, codeVerifier } = options;
+      params = this.#urlSearchParams({
+        ['client_id']: this.#options.clientId,
+        ['client_assertion_type']: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+        ['client_assertion']: clientAssertion,
+        ['grant_type']: 'authorization_code',
+        ['code']: code,
+        ['redirect_uri']: redirectUri,
+        ['code_verifier']: codeVerifier,
+        ['scope']: 'openid'
+      });
+
+    } else {
+      const { clientAssertion, authReqId } = options;
+      params = this.#urlSearchParams({
+        ['client_id']: this.#options.clientId,
+        ['client_assertion_type']: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+        ['client_assertion']: clientAssertion,
+        ['grant_type']: 'urn:openid:params:grant-type:ciba',
+        ['auth_req_id']: authReqId
+      });
+    }
 
     try {
       const { data } = await axios(tokenUri, {
@@ -216,16 +281,7 @@ export class NdiLogin extends NdiLoginUtil {
         headers: {
           ['Content-Type']: 'application/x-www-form-urlencoded'
         },
-        data: this.#urlSearchParams({
-          ['client_id']: this.#options.clientId,
-          ['client_assertion_type']: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-          ['client_assertion']: clientAssertion,
-          ['grant_type']: 'authorization_code',
-          ['code']: code,
-          ['redirect_uri']: redirectUri,
-          ['code_verifier']: codeVerifier,
-          ['scope']: 'openid'
-        })
+        data: params
       });
 
       this.#debug(JSON.stringify(data));
@@ -252,7 +308,7 @@ export class NdiLogin extends NdiLoginUtil {
       if (err.response) {
         this.#error(JSON.stringify(err.response.data));
       }
-      this.#error(`Failed to get ID token: ${err.message}`);
+      this.#error(`Failed to get tokens: ${err.message}`);
       throw err;
     }
   }

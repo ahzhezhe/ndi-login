@@ -49,6 +49,7 @@ export interface NdiLoginOptions {
 export interface OpenidConfiguration {
   issuer: string;
   authorizationUri: string;
+  backchannelAuthenticationUri: string;
   jwksUri: string;
   tokenUri: string;
   fetchedAt: number;
@@ -146,11 +147,36 @@ export interface GenerateClientAssertionOptions {
   expiresIn?: number;
 }
 
-export interface GetTokensOptions {
+export interface BackchannelAuthenticateOptions {
   /**
    * A JWT identifying the client.
    */
   clientAssertion: string;
+  /**
+   * Unique identification number of user.
+   */
+  uin: string;
+}
+
+export interface BackchannelAuthenticateResponse {
+  /**
+   * A JWT identifying the client.
+   */
+  clientAssertion: string;
+  /**
+   * Authentication request ID.
+   */
+  authReqId: string;
+}
+
+interface GetTokensOptions {
+  /**
+   * A JWT identifying the client.
+   */
+  clientAssertion: string;
+}
+
+export interface GetTokensByAuthorizationCodeOptions extends GetTokensOptions {
   /**
    * The code issued earlier in the auth session.
    */
@@ -164,6 +190,13 @@ export interface GetTokensOptions {
    * This is the session-based, unique, and non-guessable value that the RP had used to generate the code challenge.
    */
   codeVerifier: string;
+}
+
+export interface GetTokensByAuthReqIdOptions extends GetTokensOptions {
+  /**
+   * The backchannel authentication request ID issued earlier in the auth session.
+   */
+  authReqId: string;
 }
 
 export interface Tokens {
