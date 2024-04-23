@@ -160,10 +160,6 @@ export interface BackchannelAuthenticateOptions {
 
 export interface BackchannelAuthenticateResponse {
   /**
-   * A JWT identifying the client.
-   */
-  clientAssertion: string;
-  /**
    * Authentication request ID.
    */
   authReqId: string;

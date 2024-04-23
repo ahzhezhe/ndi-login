@@ -226,10 +226,12 @@ export class NdiLogin extends NdiLoginUtil {
       this.#debug(JSON.stringify(data));
 
       const authReqId = data.auth_req_id;
+
       if (!authReqId) {
         throw new Error('Missing auth_req_id.');
       }
-      return authReqId;
+
+      return { authReqId };
 
     } catch (err) {
       if (err.response) {
@@ -294,10 +296,7 @@ export class NdiLogin extends NdiLoginUtil {
           throw new Error('Missing id_token.');
         }
 
-        return {
-          idToken,
-          accessToken
-        };
+        return { idToken, accessToken };
 
       } catch (err) {
         this.#error(JSON.stringify(data));
