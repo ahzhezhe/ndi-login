@@ -51,10 +51,28 @@ const uri = await ndiLogin.generateAuthorizationUri({ redirectUri, codeChallenge
 
 <br />
 
-## **Exchange for ID token with authorization code**
+## **Backchannel authentication**
+```typescript
+const clientAssertion = await ndiLogin.generateClientAssertion();
+const { authReqId } = await ndiLogin.backchannelAuthenticate({ clientAssertion, uin })
+```
+
+<br />
+
+## **Exchange for tokens with authorization code**
 ```typescript
 const clientAssertion = await ndiLogin.generateClientAssertion();
 const { idToken } = await ndiLogin.getTokens({ clientAssertion, code, redirectUri, codeVerifier });
+const { sub } = await ndiLogin.getIdTokenClaims(idToken);
+const { uin } = NdiLogin.parseIdTokenSub(sub);
+```
+
+<br />
+
+## **Exchange for tokens with backchannel authentication request ID**
+```typescript
+const clientAssertion = await ndiLogin.generateClientAssertion();
+const { idToken } = await ndiLogin.getTokens({ clientAssertion, authReqId });
 const { sub } = await ndiLogin.getIdTokenClaims(idToken);
 const { uin } = NdiLogin.parseIdTokenSub(sub);
 ```
